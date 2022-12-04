@@ -105,13 +105,30 @@ homicides_raw_df =
   read_csv("data/homicide-data.csv") %>% 
   janitor::clean_names() %>% 
   mutate(
-    city_state = str_c(city,state,sep=",") ,
-    homicides_status = ifelse(disposition != "Closed by arrest", "unsolved", "solved"),
-    victim_age = as.numeric(victim_age)
+    city_state = str_c(city,state, sep = ","),
+    homicides_status = as.numeric(disposition == "Closed by arrest"),
+    victim_age = as.numeric(victim_age),
+    victim_race = fct_relevel(victim_race, "White")
   ) %>% 
   filter(
-    city_state != c("Dallas,TX", "Phoneix,AZ", "Kansas City,MO", "Tulsa,AL"),
-    victim_race == c("White", "Black")
+    !city_state %in% c("Dallas,TX", "Phoneix,AZ", "Kansas City,MO", "Tulsa,AL"),
+    victim_race %in% c("White", "Black")
     )
+```
+
+```{r}
+glm_baltimore = 
+  homicides_raw_df %>%
+  filter(city_state == "Baltimore,MD") %>% 
+  glm(homicides_status ~ victim_age + victim_sex + victim_race, data = ., family = binomial()) %>% 
+  broom::tidy() %>% 
+  mutate(OR = exp(estimate),
+         CI_lower = exp(estimate - 1.96 * std.error),
+         CI_upper = exp(estimate + 1.96 * std.error)) %>%
+  select(term, OR, CI_lower, CI_upper) %>% 
+  filter(term == "victim_sexMale")
+
+glm_baltimore %>% 
+knitr::kable(digits = 3)
 ```
 
