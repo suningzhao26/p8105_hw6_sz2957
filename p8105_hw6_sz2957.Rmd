@@ -101,6 +101,10 @@ The point of this is not to say you should always use the bootstrap -- it's poss
 
 ### Problem 2
 
+#### Loading the dataset
+* First, I used `read_csv` to read the original dataset and used `janitor::clean_names` to clean the title.
+* Then, I used `mutate` to create `city_state` variable and a binary variable indicating whether the homicide is solved called `homicides_status`, and translate `victim_age` as a numeric vector.
+* Lastly, I used `filter` to omit some cities and limit the analysis for whom `victim_race` is `white` or `black`.
 ```{r}
 homicides_raw_df = 
   read_csv("data/homicide-data.csv") %>% 
@@ -108,8 +112,7 @@ homicides_raw_df =
   mutate(
     city_state = str_c(city,state, sep = ","),
     homicides_status = as.numeric(disposition == "Closed by arrest"),
-    victim_age = as.numeric(victim_age),
-    victim_race = fct_relevel(victim_race, "White")
+    victim_age = as.numeric(victim_age)
   ) %>% 
   filter(
     !city_state %in% c("Dallas,TX", "Phoneix,AZ", "Kansas City,MO", "Tulsa,AL"),
@@ -117,6 +120,11 @@ homicides_raw_df =
     )
 ```
 
+#### Create a GLM model for Baltimore,MD
+* First, I used `glm` function to fit a logistic regression model with `homicides_status` as outcome and `victim_age`, `victim_sex` and `victim_race` as predictors.
+* Then, I applied `broom::tidy` to this object.
+* In order to estimate the odds ratio and confidence interval, I used `exp` to translate the log odds ratio to odds ratio, and calculate the 95% confidence interval by multiple 1.96.
+* Finally, I used `filter` to only compare male victims to female victims keeping all other variables fixed.
 ```{r}
 glm_baltimore = 
   homicides_raw_df %>%
@@ -133,6 +141,11 @@ glm_baltimore %>%
 knitr::kable(digits = 3)
 ```
 
+#### Create a GLM model for each cities.
+* In order to create a GLM model for each cities, firstly, I used `nest` to nest the datas excluding `city_state`.
+* Then, I used `mutate` and `map` to generalize logistic regression model for each city and marked the results as `results`.
+* After that, I `unnest` the dataframe and used `mutate` to translate log odds ratio and calculate the confidence interval.
+* Finally, I used `filter` to only compare male victims to female victims keeping all other variables fixed.
 ```{r}
 glm_homicides_df = 
   homicides_raw_df %>%
@@ -149,11 +162,13 @@ glm_homicides_df =
   filter(term == "victim_sexMale") %>% 
   select(city_state, OR, CI_lower, CI_upper)
 
-
 glm_homicides_df %>% 
   knitr::kable(digits = 3)
 ```
 
+#### Create a plot that shows the estimated ORs and CIs for each city
+* First, I reordered the cities according to OR using `fct_reorder`.
+* Then, I created a plot use `ggplot`, `geom_point` and `geom_line`.
 ```{r}
 glm_homicides_df %>% 
   mutate(city_state = fct_reorder(city_state, OR)) %>%
@@ -164,6 +179,9 @@ glm_homicides_df %>%
   theme(plot.title = element_text(hjust = 0.5)) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
+* According to the plot, we can know that the estimated odds ratio of solving homicides between male and female victims lies in between 0 and 2.
+* For 50 cities, only 4 cities are with odds ratio higher than 1, which suggests that male victims has a larger chance to have a solving homicides. Those cities are Nashville,TN, Fresno,CA, Stockton,CA, and Albuquerque,NM. 
+* `Fresno,CA`, `Stockton,CA`, and `Albuquerque,NM`have wider confidence intervals than others, with higher standard errors. Those may be because of a small sample in those cities or some outliers.
 
 ### Problem 3
 
@@ -212,7 +230,7 @@ model_2
 
 ```{r}
 cv_df = 
-  crossv_mc(birth_weight_df, 100) %>% 
+  crossv_mc(birth_weight_df, 1000) %>% 
   mutate(train = map(train, as_tibble),
     test = map(test, as_tibble))%>% 
   mutate(
