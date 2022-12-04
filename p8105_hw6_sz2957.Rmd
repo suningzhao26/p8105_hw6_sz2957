@@ -141,7 +141,7 @@ glm_baltimore %>%
 knitr::kable(digits = 3)
 ```
 
-#### Create a GLM model for each cities.
+#### Create a GLM model for each cities
 * In order to create a GLM model for each cities, firstly, I used `nest` to nest the datas excluding `city_state`.
 * Then, I used `mutate` and `map` to generalize logistic regression model for each city and marked the results as `results`.
 * After that, I `unnest` the dataframe and used `mutate` to translate log odds ratio and calculate the confidence interval.
@@ -179,12 +179,16 @@ glm_homicides_df %>%
   theme(plot.title = element_text(hjust = 0.5)) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
+
 * According to the plot, we can know that the estimated odds ratio of solving homicides between male and female victims lies in between 0 and 2.
 * For 50 cities, only 4 cities are with odds ratio higher than 1, which suggests that male victims has a larger chance to have a solving homicides. Those cities are Nashville,TN, Fresno,CA, Stockton,CA, and Albuquerque,NM. 
 * `Fresno,CA`, `Stockton,CA`, and `Albuquerque,NM`have wider confidence intervals than others, with higher standard errors. Those may be because of a small sample in those cities or some outliers.
 
 ### Problem 3
 
+#### Load and clean the data for regression analysis
+* I used `read_csv` to read the original file in dataset, and then used `mutate` to translate parts of numeric variables into factors.
+* Then I tested the missing data using `sum`. It showed that there was no missing value in the dataset.
 ```{r}
 birth_weight_df = 
   read_csv("data/birthweight.csv") %>% 
@@ -198,6 +202,8 @@ birth_weight_df =
 sum(is.na(birth_weight_df))
 ```
 
+#### Create a regression model for birthweight
+* I used `step` function to create the model using stepwise method.
 ```{r}
 my_model <- lm(bwt ~.,
                data =birth_weight_df)
@@ -205,6 +211,8 @@ step(my_model, direction = "both", trace  = FALSE)
 summary(my_model)
 ```
 
+* The result shows that `babysex2`, `bhead`, `blength`, `delwt`, `fincome`, `gaweeks`, `mheight`, `mrace`, `parity`,`ppwt` and `smoken` can be the predictors.
+* Then, I created a plot to illustrate the relationship between residuals and fitted values, using `add_predictions` and `add_residuals`.
 ```{r}
 birth_weight_df %>% 
   add_predictions(my_model) %>% 
@@ -218,6 +226,12 @@ birth_weight_df %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+* From the graph we can know that most of residuals are lying around 0 when fitted value is between 2000 to 4000. 
+* Some outliers should also be pointed out when fitted values are too small. The largest bias is around 2000. This might be due to the data collection step.
+
+#### Compare my model to two others
+
+* Created the models first.
 ```{r}
 model_1 = lm(bwt ~ blength + gaweeks, data = birth_weight_df)
 
@@ -227,10 +241,15 @@ model_2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + b
 model_1 
 model_2
 ```
+* From the results we can know that model 1 is with only two predictors, while model 2 is with 7 predictors, including some interactions. Because model 2 is much more complicated, it might be with a better prediction but we should check with the prediction error.
 
+#### Check the prediction error between three models
+* First, I used `crossv_mc` and `map` to generate train dataset and test dataset.
+* Then I generated models in each dataset and calculated the rmse.
+* Last, I created a plot for RMSE among three models.
 ```{r}
 cv_df = 
-  crossv_mc(birth_weight_df, 1000) %>% 
+  crossv_mc(birth_weight_df, 100) %>% 
   mutate(train = map(train, as_tibble),
     test = map(test, as_tibble))%>% 
   mutate(
@@ -258,3 +277,5 @@ cv_df %>%
        y = "Root Mean Square Error (RMSE)")   
 ```
 
+* From the graph we can know that my model is with the smallest RMSE, which means that it can predict the birthweight best.
+* For two models, model 2 is better than model 1, with a smaller RMSE. The RMSE for my model is not with a huge difference compared with model 2.
