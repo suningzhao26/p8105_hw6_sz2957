@@ -134,7 +134,7 @@ knitr::kable(digits = 3)
 ```
 
 ```{r}
-nest_homicides_raw_df = 
+glm_homicides_df = 
   homicides_raw_df %>%
   nest(data = -city_state) %>% 
   mutate(
@@ -150,7 +150,18 @@ nest_homicides_raw_df =
   select(city_state, OR, CI_lower, CI_upper)
 
 
-nest_homicides_raw_df %>% 
+glm_homicides_df %>% 
   knitr::kable(digits = 3)
+```
+
+```{r}
+glm_homicides_df %>% 
+  mutate(city_state = fct_reorder(city_state, OR)) %>%
+  ggplot(aes(x = city_state, y = OR))+
+  geom_point()+
+  geom_errorbar(mapping = aes(ymin = CI_lower, ymax = CI_upper))+
+  labs( x = "City, State",  y = "Odds Ratio", title = "Estimated Odds Ratio and Confidence Intervals of Solving Homicides Comparing Male Victims and Female Victims for Each City ") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
