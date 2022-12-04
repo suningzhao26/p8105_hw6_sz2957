@@ -200,3 +200,43 @@ birth_weight_df %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+```{r}
+model_1 = lm(bwt ~ blength + gaweeks, data = birth_weight_df)
+
+model_2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex,
+               data = birth_weight_df)
+
+model_1 
+model_2
+```
+
+```{r}
+cv_df = 
+  crossv_mc(birth_weight_df, 100) %>% 
+  mutate(train = map(train, as_tibble),
+    test = map(test, as_tibble))%>% 
+  mutate(
+    model_1  = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    model_2  = map(train, ~lm(bwt ~ bhead * blength * babysex, data = .x)),
+    my_model  = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .x ))) %>% 
+  mutate(
+    rmse_model_1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
+    rmse_model_2  = map2_dbl(model_2, test, ~rmse(model = .x, data = .y)),
+    rmse_my_model = map2_dbl(my_model, test, ~rmse(model = .x, data = .y)))
+
+cv_df %>% 
+  select(starts_with("rmse")) %>%
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>%
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin() +
+  labs(title = "Comparison of the Cross-Validated Prediction Error", 
+       x = "Models", 
+       y = "Root Mean Square Error (RMSE)")   
+```
+
