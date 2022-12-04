@@ -167,3 +167,36 @@ glm_homicides_df %>%
 
 ### Problem 3
 
+```{r}
+birth_weight_df = 
+  read_csv("data/birthweight.csv") %>% 
+  mutate(
+    babysex = as.factor(babysex),
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace),
+  )
+
+sum(is.na(birth_weight_df))
+```
+
+```{r}
+my_model <- lm(bwt ~.,
+               data =birth_weight_df)
+step(my_model, direction = "both", trace  = FALSE)
+summary(my_model)
+```
+
+```{r}
+birth_weight_df %>% 
+  add_predictions(my_model) %>% 
+  add_residuals(my_model) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(formula = 'y ~ x',method = "lm", se = FALSE) +
+  labs(title = "Fitted Values vs. Residuals",
+       x = "Fitted Values", 
+       y = "Residuals") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
