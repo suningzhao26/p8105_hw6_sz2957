@@ -208,7 +208,14 @@ sum(is.na(birth_weight_df))
 my_model <- lm(bwt ~.,
                data =birth_weight_df)
 step(my_model, direction = "both", trace  = FALSE)
-summary(my_model)
+
+my_model %>% 
+  broom::tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  knitr::kable(
+    digits = 3,
+    col.names = c("Term", "Estimate", "P-value")
+  )
 ```
 
 * The result shows that `babysex2`, `bhead`, `blength`, `delwt`, `fincome`, `gaweeks`, `mheight`, `mrace`, `parity`,`ppwt` and `smoken` can be the predictors.
@@ -238,8 +245,21 @@ model_1 = lm(bwt ~ blength + gaweeks, data = birth_weight_df)
 model_2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex,
                data = birth_weight_df)
 
-model_1 
-model_2
+model_1 %>% 
+  broom::tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  knitr::kable(
+    digits = 3,
+    col.names = c("Term", "Estimate", "P-value")
+  )
+
+model_2 %>% 
+  broom::tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  knitr::kable(
+    digits = 3,
+    col.names = c("Term", "Estimate", "P-value")
+  )
 ```
 * From the results we can know that model 1 is with only two predictors, while model 2 is with 7 predictors, including some interactions. Because model 2 is much more complicated, it might be with a better prediction but we should check with the prediction error.
 
